@@ -4,7 +4,7 @@ import { FormProvider, useForm } from "react-hook-form";
 import * as yup from "yup"
 import { yupResolver } from '@hookform/resolvers/yup';
 import ComInput from "../../Components/ComInput/ComInput";
-
+import ComButton from "../../Components/ComButton/ComButton";
 import { textApp } from "../../../TextContent/textApp";
 import { ComLink } from "../../Components/ComLink/ComLink";
 import { routs } from "../../../constants/ROUT";
@@ -13,7 +13,7 @@ import { useEffect, useState } from "react";
 import { postData } from "../../../api/api";
 import ComHeader from "../../Components/ComHeader/ComHeader";
 import { useLocation, useNavigate } from "react-router-dom";
-
+import { FieldError } from "../../Components/FieldError/FieldError";
 import ComFooter from "../../Components/ComFooter/ComFooter";
 import { notification } from "antd";
 
@@ -125,15 +125,17 @@ export default function Login() {
                                 {...register("password")}
                                 required
                             />
+                            <FieldError className="text-red-500 text-center">{Login ? textApp.Login.message.error : ''}</FieldError>
+                            <FieldError className="text-red-500 text-center">{LoginError ? textApp.Login.message.error1 : ''}</FieldError>
+                            <ComButton
 
-
-                            {/* <ComButton
+                                disabled={disabled}
                                 htmlType="submit"
                                 type="primary"
-                                className="bg-black hover:bg-white"
                             >
-                                cancel
-                            </ComButton> */}
+                                {textApp.Login.pageTitle}
+                            </ComButton>
+
                         </form>
                     </FormProvider>
 
