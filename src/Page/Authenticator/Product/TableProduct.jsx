@@ -19,6 +19,7 @@ import ComTextArea from '../../Components/ComInput/ComTextArea';
 import ComHeader from '../../Components/ComHeader/ComHeader';
 import CreateProduct from './CreateProduct';
 import { useStorage } from '../../../hooks/useLocalStorage';
+import { useNavigate } from 'react-router-dom';
 
 
 
@@ -40,7 +41,19 @@ export default function TableProduct() {
     const [searchedColumn, setSearchedColumn] = useState('');
     const searchInput = useRef(null);
     const [token, setToken] = useStorage("user", {});
-
+    const navigate = useNavigate();
+    const [category, setCategory] = useState([]);
+    useEffect(() => {
+        getData("/category")
+            .then((data) => {
+                setCategory([...data.data, ...options])
+            })
+    }, []);
+    useEffect(() => {
+        if (!token?._doc?._id) {
+            return navigate('/login')
+        }
+    }, []);
     const handleSearch = (selectedKeys, confirm, dataIndex) => {
         confirm();
         setSearchText(selectedKeys[0]);
@@ -81,18 +94,7 @@ export default function TableProduct() {
         setIsModalOpenDelete(true);
     };
     const options = [
-        {
-            label: "Tranh",
-            value: "Tranh"
-        },
-        {
-            label: "Trang trí",
-            value: "Trang trí"
-        },
-        {
-            label: "Nghệ thuật",
-            value: "Nghệ thuật"
-        },
+  
     ];
 
     const handleCancel = () => {
@@ -287,7 +289,7 @@ export default function TableProduct() {
     }
     useEffect(() => {
         setTimeout(() => {
-            getData(`/product/user/${token._doc._id}`, {})
+            getData(`/product/user/${token?._doc?._id}`, {})
                 .then((data) => {
                     setProducts(data?.data?.docs)
                 })
@@ -396,7 +398,8 @@ export default function TableProduct() {
             title: 'Ảnh sản phẩm',
             dataIndex: 'image',
             key: 'img',
-            width: 200,
+            width: 150,
+            height: 150,
             fixed: 'left',
             render: (_, record) => (
 
@@ -506,6 +509,30 @@ export default function TableProduct() {
             ),
 
         },
+        // {
+        //     title: 'Trạng thái',
+        //     dataIndex: 'accept',
+        //     key: 'accept',
+        //     width: 300,
+        //     ...getColumnSearchProps('accept', "Trạng thái"),
+        //     // render: (_, record) => (
+
+        //     //     <div className="text-sm text-gray-700 line-clamp-4">
+        //     //         <p className="text-sm text-gray-700 line-clamp-4">{record.description}</p>
+        //     //     </div>
+
+        //     // ),
+        //     ellipsis: {
+        //         showTitle: false,
+        //     },
+        //     render: (record) => (
+        //        <>
+        //         {record=== true && "Đã duyệt"}
+        //         {record=== false && "Chưa duyệt"}
+        //        </>
+        //     ),
+
+        // },
         {
             title: 'Action',
             key: 'operation',
@@ -624,7 +651,7 @@ export default function TableProduct() {
                                         onChangeValue={handleChange}
                                         value={selectedMaterials}
                                         mode="tags"
-                                        options={options}
+                                        options={category}
                                         {...register("genre")}
 
                                     />
