@@ -9,7 +9,7 @@ import {
 import ShoppingCart from "../../Authenticator/ShoppingCart/ShoppingCart";
 import { routs } from "../../../constants/ROUT";
 import { ComLink } from "../ComLink/ComLink";
-import { Affix, Drawer, Dropdown, FloatButton, Select, Space } from "antd";
+import { Affix, Drawer, Dropdown, FloatButton } from "antd";
 import images from "../../../img";
 import ComInput from "../ComInput/ComInput";
 import { FormProvider, useForm } from "react-hook-form";
@@ -20,62 +20,24 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useStorage } from "../../../hooks/useLocalStorage";
 import { useSocket } from "../../../App";
 import axios from "axios";
-import { DownOutlined } from '@ant-design/icons';
-import { getData } from "../../../api/api";
+
 const navigation = {
   pages: [
-    { name: textApp.Header.home, href: "/" },
-    { name: "Theo dõi", href: "/follow" },
-    { name: "Cửa hàng", href: "/product" },
+    { name: "Quản lý người dùng", href: "/admin/tableUser" },
+    { name: "Quản lý báo cáo bài viết", href: "/admin/tableFeedback" },
+    { name: "Quản lý báo cáo người dùng", href: "/admin/tablereportuser" },
+    // { name: "Quản lý sản phẩm", href: "/admin/tableproduct" },
+    { name: "table Artwork", href: "/admin/tableartwork" },
   ],
 };
-// const items = [
-//   {
-//     label: "ád",
-//     key: '0',
-//   },
-//   {
-//     label: "ádc",
-//     key: '1',
-//   },
-//   {
-//     label:
-//       'Nghệ thuật',
-//     key: '3',
-//   },
-
-// ];
 
 function classNames(...classes) {
   return classes.filter(Boolean).join(" ");
 }
 
-export default function ComHeader({ dataCart, updateCart }) {
+export default function AdminHeader({ dataCart, updateCart }) {
   const socket = useSocket();
   const [openNotification, setOpenNotification] = useState(false);
-  const [items, setCategory] = useState([
-    {
-      label:
-        'Nghệ thuật',
-      key: '3',
-    },
-
-  ]);
-
-  const link = (e) => {
-    console.log('====================================');
-    console.log(e);
-    console.log('====================================');
-  }
-  useEffect(() => {
-    getData("/category")
-      .then((data) => {
-        const categoriesWithKeys = data.data.map((category, index) => {
-          return { label: <a href={`/category/${category.label}`}> {category.label}</a>, key: index };
-        });
-        setCategory(categoriesWithKeys)
-      })
-  }, []);
   const showDrawer = () => {
     setOpenNotification(true);
   };
@@ -83,11 +45,8 @@ export default function ComHeader({ dataCart, updateCart }) {
   const onClose = () => {
     setOpenNotification(false);
   };
-  const [sortCate, setSortCate] = useState("all");
-  const [countNoti, setCountNoti] = useState(false);
   const [open, setOpen] = useState(false);
   const [shoppingCart, setShoppingCart] = useState(false);
-  const [follow, setFollow] = useState(false);
   const [sttLogin, setSttLogin] = useState(
     JSON.parse(localStorage.getItem("user")) || []
   );
@@ -99,7 +58,7 @@ export default function ComHeader({ dataCart, updateCart }) {
   const location = useLocation();
   const navigate = useNavigate();
   useEffect(() => {
-    // window.scrollTo(0, 0);
+    window.scrollTo(0, 0);
   }, []);
   const updateShoppingCartStatus = (newStatus) => {
     setShoppingCart(newStatus);
@@ -115,18 +74,7 @@ export default function ComHeader({ dataCart, updateCart }) {
       search: "",
     },
   });
-  useEffect(() => {
-    if (!token?._doc?._id) {
-      // return navigate("/login");
-    }
-    getData(`/user/${token?._doc?._id}`)
-      .then((user) => {
-        setFollow(user?.data?.role);
-      })
-      .catch((error) => {
-        console.log(error);
-      });
-  }, [token?._doc?._id]);
+
   useEffect(() => {
     setSttLogin(JSON.parse(localStorage.getItem("user")) || []);
 
@@ -160,7 +108,6 @@ export default function ComHeader({ dataCart, updateCart }) {
           ...prevNotifications,
           data,
         ]);
-        setCountNoti(true);
       }
     });
 
@@ -212,9 +159,6 @@ export default function ComHeader({ dataCart, updateCart }) {
     }
   };
 
-  const changeSelectCate = (value) => {
-    value === "" ? navigate("/") : navigate(`/?cate=${value}`);
-  };
   return (
     <>
       <ShoppingCart
@@ -331,10 +275,14 @@ export default function ComHeader({ dataCart, updateCart }) {
 
                   {/* Logo */}
                   <div className="ml-4 flex lg:ml-0">
-                    <ComLink to={routs["/"].link}>
+                    {/* <ComLink to={routs["/"].link}>
                       <span className="sr-only">Your Company</span>
-                      <img className="h-16 w-auto " src={images.logo1} alt="" />
-                    </ComLink>
+                      <img
+                        className="h-16 w-auto "
+                        src={images.logo}
+                        alt=""
+                      />
+                    </ComLink> */}
                   </div>
 
                   {/* Flyout menus */}
@@ -363,23 +311,12 @@ export default function ComHeader({ dataCart, updateCart }) {
                           </div>
                         </Link>
                       ))}
-                      <Dropdown menu={{ items }}>
-                        <Link
-                          className="flex items-center text-base font-medium text-gray-700 hover:text-gray-800"
-                          onClick={(e) => link(e)}
-                        >
-                          <Space>
-                            Thể loại
-                            <DownOutlined />
-                          </Space>
-                        </Link>
-                      </Dropdown>
                     </div>
                   </Popover.Group>
 
                   <div className="ml-auto flex items-center">
                     {/* Search */}
-                    <div className="flex lg:ml-6">
+                    {/* <div className="flex lg:ml-6">
                       <FormProvider {...methods}>
                         <form
                           onSubmit={handleSubmit(onSubmit)}
@@ -393,8 +330,8 @@ export default function ComHeader({ dataCart, updateCart }) {
                           />
                         </form>
                       </FormProvider>
-                    </div>
-                    <div className="ml-4 flow-root lg:ml-6">
+                    </div> */}
+                    {/* <div className="ml-4 flow-root lg:ml-6">
                       <button
                         type="button"
                         className="group -m-2 flex items-center p-2"
@@ -404,24 +341,14 @@ export default function ComHeader({ dataCart, updateCart }) {
                           className="h-6 w-6 flex-shrink-0 text-gray-400 group-hover:text-gray-500"
                           aria-hidden="true"
                         />
-                        {countNoti && (
-                          <span
-                            className="ml-2 text-sm font-medium text-gray-700 group-hover:text-gray-800"
-                            style={{
-                              background: "#e13232",
-                              width: "10px",
-                              height: "10px",
-                              borderRadius: "50%",
-                              position: "absolute",
-                              top: "20px",
-                              right: "140px",
-                            }}
-                          ></span>
-                        )}
+
+                        <span className="ml-2 text-sm font-medium text-gray-700 group-hover:text-gray-800">
+                          {dataCart?.length || cart.length}
+                        </span>
                       </button>
-                    </div>
+                    </div> */}
                     {/* Cart */}
-                    <div className="ml-4 flow-root lg:ml-6">
+                    {/* <div className="ml-4 flow-root lg:ml-6">
                       <button
                         onClick={() => {
                           setShoppingCart(true);
@@ -437,7 +364,7 @@ export default function ComHeader({ dataCart, updateCart }) {
                         </span>
                         <span className="sr-only">items in cart, view bag</span>
                       </button>
-                    </div>
+                    </div> */}
                     {/* login */}
                     {!sttLogin?._doc && (
                       <div className="hidden lg:flex lg:flex-1 lg:items-center lg:justify-end lg:space-x-6 lg:ml-6">
@@ -526,52 +453,45 @@ export default function ComHeader({ dataCart, updateCart }) {
                                   </ComLink>
                                 )}
                               </Menu.Item>
-                              {follow === "creator" && (
-                                <Menu.Item>
-                                  {({ active }) => (
-                                    <ComLink
-                                      to={"/my/order"}
-                                      className={classNames(
-                                        active ? "bg-gray-100" : "",
-                                        "block px-4 py-2 text-sm text-gray-700"
-                                      )}
-                                    >
-                                      Đơn bán hàng
-                                    </ComLink>
-                                  )}
-                                </Menu.Item>
-                              )}
-                              {follow === "creator" && (
-                                <Menu.Item>
-                                  {({ active }) => (
-                                    <ComLink
-                                      to="/my/product/table"
-                                      className={classNames(
-                                        active ? "bg-gray-100" : "",
-                                        "block px-4 py-2 text-sm text-gray-700"
-                                      )}
-                                    >
-                                      Sản phẩm của tôi
-                                    </ComLink>
-                                  )}
-                                </Menu.Item>
-                              )}
-
-                              {/* {follow === "creator" && ( */}
-                                <Menu.Item>
-                                  {({ active }) => (
-                                    <ComLink
-                                      to={"/orderRequest"}
-                                      className={classNames(
-                                        active ? "bg-gray-100" : "",
-                                        "block px-4 py-2 text-sm text-gray-700"
-                                      )}
-                                    >
-                                      Đơn hàng theo yêu cầu
-                                    </ComLink>
-                                  )}
-                                </Menu.Item>
-                              {/* )} */}
+                              <Menu.Item>
+                                {({ active }) => (
+                                  <ComLink
+                                    to={"/my/order"}
+                                    className={classNames(
+                                      active ? "bg-gray-100" : "",
+                                      "block px-4 py-2 text-sm text-gray-700"
+                                    )}
+                                  >
+                                    Đơn bán hàng
+                                  </ComLink>
+                                )}
+                              </Menu.Item>
+                              <Menu.Item>
+                                {({ active }) => (
+                                  <ComLink
+                                    to="/my/product/table"
+                                    className={classNames(
+                                      active ? "bg-gray-100" : "",
+                                      "block px-4 py-2 text-sm text-gray-700"
+                                    )}
+                                  >
+                                    Sản phẩm của tôi
+                                  </ComLink>
+                                )}
+                              </Menu.Item>
+                              <Menu.Item>
+                                {({ active }) => (
+                                  <ComLink
+                                    to={"/orderRequest"}
+                                    className={classNames(
+                                      active ? "bg-gray-100" : "",
+                                      "block px-4 py-2 text-sm text-gray-700"
+                                    )}
+                                  >
+                                    Đơn hàng theo yêu cầu
+                                  </ComLink>
+                                )}
+                              </Menu.Item>
                               <Menu.Item>
                                 {({ active }) => (
                                   <ComLink
@@ -600,27 +520,16 @@ export default function ComHeader({ dataCart, updateCart }) {
       <Drawer title="Notification" onClose={onClose} open={openNotification}>
         {listNotification?.map((item, key) => (
           <div
-            style={{ cursor: "pointer", padding: "5px" }}
-            className="shadow-md"
-            // onClick={() => handleClick(item?.link)}
+            style={{ cursor: "pointer" }}
+            onClick={() => handleClick(item?.link)}
             key={key}
           >
-            <Link
-              to={`/author/${item?.pusher?._id}`}
-              style={{ color: "#509adb", fontWeight: "500" }}
-            >
-              {item?.pusher?.name}
-            </Link>{" "}
-            {item?.textType}{" "}
-            <Link
-              to={`/artwork/${item?.artwork?._id}`}
-              style={{ color: "#509adb", fontWeight: "500" }}
-            >
-              {renderType(item?.type)} {renderTail(item?.type)}
-            </Link>
+            {item?.pusher?.name} {item?.textType} {renderType(item?.type)}{" "}
+            {renderTail(item?.type)}
           </div>
         ))}
       </Drawer>
+      {console.log(listNotification)}
       <FloatButton.BackTop />
     </>
   );
