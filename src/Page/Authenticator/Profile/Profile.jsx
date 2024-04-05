@@ -1,40 +1,41 @@
-
-import { useEffect, useState } from 'react'
-import { StarIcon } from '@heroicons/react/20/solid'
-import ComHeader from '../../Components/ComHeader/ComHeader'
-import ComImage from '../../Components/ComImage/ComImage'
-import { getData, postData, putData } from '../../../api/api'
-import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
-import { textApp } from '../../../TextContent/textApp'
-import { FormProvider, useForm } from 'react-hook-form'
-import * as yup from "yup"
-import { yupResolver } from '@hookform/resolvers/yup'
-import ComNumber from '../../Components/ComInput/ComNumber'
-import { Button, Dropdown, Image, Menu, Modal, notification } from 'antd'
-import PageNotFound from '../404/PageNotFound'
-import { HoverCard, HoverCardContent, HoverCardTrigger } from '@radix-ui/react-hover-card'
-import { CalendarDays } from 'lucide-react'
-import InfiniteScroll from 'react-infinite-scroll-component'
+import { useEffect, useState } from "react";
+import { StarIcon } from "@heroicons/react/20/solid";
+import ComHeader from "../../Components/ComHeader/ComHeader";
+import ComImage from "../../Components/ComImage/ComImage";
+import { getData, postData, putData } from "../../../api/api";
+import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
+import { textApp } from "../../../TextContent/textApp";
+import { FormProvider, useForm } from "react-hook-form";
+import * as yup from "yup";
+import { yupResolver } from "@hookform/resolvers/yup";
+import ComNumber from "../../Components/ComInput/ComNumber";
+import { Button, Dropdown, Image, Menu, Modal, notification } from "antd";
+import PageNotFound from "../404/PageNotFound";
 import {
-  LikeOutlined,
-  CommentOutlined
-} from '@ant-design/icons';
-import { useStorage } from '../../../hooks/useLocalStorage'
-import ComUpImgOne from '../../Components/ComUpImg/ComUpImgOne'
-import ComButton from '../../Components/ComButton/ComButton'
-import { firebaseImgs } from '../../../upImgFirebase/firebaseImgs'
-import { FieldError } from '../../Components/FieldError/FieldError'
-import ComInput from '../../Components/ComInput/ComInput'
-import ComTextArea from '../../Components/ComInput/ComTextArea'
-import ComSelect from '../../Components/ComInput/ComSelect'
-import Card from './card'
-import ChangePassword from './changePassword'
+  HoverCard,
+  HoverCardContent,
+  HoverCardTrigger,
+} from "@radix-ui/react-hover-card";
+import { CalendarDays } from "lucide-react";
+import InfiniteScroll from "react-infinite-scroll-component";
+import { LikeOutlined, CommentOutlined } from "@ant-design/icons";
+import { useStorage } from "../../../hooks/useLocalStorage";
+import ComUpImgOne from "../../Components/ComUpImg/ComUpImgOne";
+import ComButton from "../../Components/ComButton/ComButton";
+import { firebaseImgs } from "../../../upImgFirebase/firebaseImgs";
+import { FieldError } from "../../Components/FieldError/FieldError";
+import ComInput from "../../Components/ComInput/ComInput";
+import ComTextArea from "../../Components/ComInput/ComTextArea";
+import ComSelect from "../../Components/ComInput/ComSelect";
+import Card from "./card";
+import ChangePassword from "./changePassword";
+import ComFooter from "../../Components/ComFooter/ComFooter";
 export default function Profile() {
-  const [Author, setAuthor] = useState([])
+  const [Author, setAuthor] = useState([]);
   const { id } = useParams();
   const [api, contextHolder] = notification.useNotification();
   const [error, setError] = useState(false);
-  const [error1, setError1] = useState('');
+  const [error1, setError1] = useState("");
   const [products, setProducts] = useState([]);
   const [productUpdate, setProductUpdate] = useState({
     content: "",
@@ -45,7 +46,7 @@ export default function Profile() {
   const [likedProducts, setLikedProducts] = useState([]);
   const [allUser, setAllUser] = useState([]);
   const [token, setToken] = useStorage("user", {});
-  const [likedProductIds, setLikedProductIds] = useState([])
+  const [likedProductIds, setLikedProductIds] = useState([]);
   const navigate = useNavigate();
   const [visible, setVisible] = useState(false);
   const [image, setImages] = useState([]);
@@ -54,15 +55,30 @@ export default function Profile() {
   const [isModalOpen1, setIsModalOpen1] = useState(false);
   const [isModalOpen3, setIsModalOpen3] = useState(false);
   const [isModalOpen2, setIsModalOpen2] = useState(false);
+  const [isModalOpen4, setIsModalOpen4] = useState(false);
+  const [isModalOpen5, setIsModalOpen5] = useState(false);
   const [load, setLoad] = useState(false);
   const [selectedMaterials, setSelectedMaterials] = useState();
+  const { search } = useLocation();
+  const queryParams = new URLSearchParams(search);
+  const paypalAccount = queryParams.get("paypalAccount");
   const loginMessenger = yup.object({
-
     // code: yup.string().required(textApp.Login.message.username).min(5, "Username must be at least 5 characters"),
-    name: yup.string().required(textApp.Reissue.message.username).min(6, textApp.Reissue.message.usernameMIn),
-    phone: yup.string().required(textApp.Reissue.message.phone).min(10, "Số điện thoại phải lớn hơn 9 số!").max(10, "Số điện thoại phải nhỏ hơn 11 số!").matches(/^0\d{9,10}$/, "Số điện thoại không hợp lệ"),
-    email: yup.string().email(textApp.Reissue.message.emailFormat).required(textApp.Reissue.message.email),
-  })
+    name: yup
+      .string()
+      .required(textApp.Reissue.message.username)
+      .min(6, textApp.Reissue.message.usernameMIn),
+    phone: yup
+      .string()
+      .required(textApp.Reissue.message.phone)
+      .min(10, "Số điện thoại phải lớn hơn 9 số!")
+      .max(10, "Số điện thoại phải nhỏ hơn 11 số!")
+      .matches(/^0\d{9,10}$/, "Số điện thoại không hợp lệ"),
+    email: yup
+      .string()
+      .email(textApp.Reissue.message.emailFormat)
+      .required(textApp.Reissue.message.email),
+  });
   const methods = useForm({
     resolver: yupResolver(loginMessenger),
     defaultValues: {
@@ -70,8 +86,23 @@ export default function Profile() {
       name: token?._doc?.name,
       phone: token?._doc?.phone,
       email: token?._doc?.email,
+      paypalAccount: Author?.paypalAccount || "",
     },
-  })
+  });
+  useEffect(() => {
+    methods.reset({
+      name: token?._doc?.name,
+      phone: token?._doc?.phone,
+      email: token?._doc?.email,
+      paypalAccount: Author?.paypalAccount,
+    });
+  }, [
+    Author?.paypalAccount,
+    methods,
+    token?._doc?.email,
+    token?._doc?.name,
+    token?._doc?.phone,
+  ]);
   const methodPost = useForm();
   useEffect(() => {
     if (productUpdate) {
@@ -82,12 +113,12 @@ export default function Profile() {
       });
     }
   }, [productUpdate, methodPost]);
-  const { handleSubmit, register, setFocus, watch, setValue } = methods
+  const { handleSubmit, register, setFocus, watch, setValue } = methods;
   useEffect(() => {
     if (!token?._doc?._id) {
-      navigate('/login')
+      navigate("/login");
     }
-  },);
+  });
   const showModal = () => {
     setIsModalOpen(true);
   };
@@ -100,24 +131,42 @@ export default function Profile() {
   const showModal1 = () => {
     setIsModalOpen1(true);
   };
-    const showModal3 = () => {
-      setIsModalOpen3(true);
-    };
+  const showModal3 = () => {
+    setIsModalOpen3(true);
+  };
   const showModal2 = () => {
     setIsModalOpen2(true);
+  };
+  const showModal4 = () => {
+    setIsModalOpen4(true);
+  };
+  const showModal5 = () => {
+    setIsModalOpen5(true);
   };
   const handleOk1 = () => {
     setIsModalOpen1(false);
   };
+  const handleOk4 = () => {
+    setIsModalOpen4(false);
+  };
+  const handleOk5 = () => {
+    setIsModalOpen5(false);
+  };
   const handleCancel1 = () => {
     setIsModalOpen1(false);
   };
-    const handleOk3 = () => {
-      setIsModalOpen3(false);
-    };
-    const handleCancel3 = () => {
-      setIsModalOpen3(false);
-    };
+  const handleCancel4 = () => {
+    setIsModalOpen4(false);
+  };
+  const handleCancel5 = () => {
+    setIsModalOpen5(false);
+  };
+  const handleOk3 = () => {
+    setIsModalOpen3(false);
+  };
+  const handleCancel3 = () => {
+    setIsModalOpen3(false);
+  };
   const handleOk2 = () => {
     setIsModalOpen2(false);
   };
@@ -126,21 +175,22 @@ export default function Profile() {
   };
   useEffect(() => {
     if (image.length > 0) {
-      setDisabled(false)
+      setDisabled(false);
     } else {
-      setDisabled(true)
+      setDisabled(true);
     }
   }, [image]);
   const fetchData = async (pageNumber) => {
     try {
-      const response = await getData(`/artwork/user/${token?._doc?._id}?page=${pageNumber}&limit=10`);
+      const response = await getData(
+        `/artwork/user/${token?._doc?._id}?page=${pageNumber}&limit=10`
+      );
       const newArray =
         response.data.docs.length > 0
           ? response.data.docs.filter((item) => item.hidden !== true)
           : [];
       return newArray;
     } catch (error) {
-
       return [];
     }
   };
@@ -150,11 +200,15 @@ export default function Profile() {
       setHasMore(false); // No more data to load
     } else {
       setProducts([...products, ...newProducts]);
-      const userLikesArray = newProducts?.map(product => product.likes.some(like => like.user === token?._doc?._id));
+      const userLikesArray = newProducts?.map((product) =>
+        product.likes.some((like) => like.user === token?._doc?._id)
+      );
 
-      const likesCountArray = newProducts?.map(product => product.likes.length);
-      setLikedProducts([...likedProducts, ...userLikesArray])
-      setLikedProductIds([...likedProductIds, ...likesCountArray])
+      const likesCountArray = newProducts?.map(
+        (product) => product.likes.length
+      );
+      setLikedProducts([...likedProducts, ...userLikesArray]);
+      setLikedProductIds([...likedProductIds, ...likesCountArray]);
       setPage(page + 1);
     }
   };
@@ -169,25 +223,28 @@ export default function Profile() {
       //       )
       //     : [];
       setProducts(initialProducts);
-      const userLikesArray = initialProducts?.map(product => product.likes.some(like => like.user === token?._doc?._id));
-      const likesCountArray = initialProducts?.map(product => product.likes.length);
-      setLikedProductIds(likesCountArray)
-      setLikedProducts(userLikesArray)
+      const userLikesArray = initialProducts?.map((product) =>
+        product.likes.some((like) => like.user === token?._doc?._id)
+      );
+      const likesCountArray = initialProducts?.map(
+        (product) => product.likes.length
+      );
+      setLikedProductIds(likesCountArray);
+      setLikedProducts(userLikesArray);
     };
     loadInitialData();
   }, [load]); // Run only once on component mount
 
   const getUserById = (array, userId) => {
     // Sử dụng find để tìm user với _id tương ứng
-    const user = array.find(item => item._id === userId);
+    const user = array.find((item) => item._id === userId);
     return user;
   };
 
-
   useEffect(() => {
-    getData('/user', {})
+    getData("/user", {})
       .then((data) => {
-        setAllUser(data?.data?.docs)
+        setAllUser(data?.data?.docs);
       })
       .catch((error) => {
         console.error("Error fetching items:", error);
@@ -197,9 +254,7 @@ export default function Profile() {
 
   // useEffect để thiết lập mảng likedProducts có độ dài bằng độ dài của mảng products và mỗi phần tử có giá trị ban đầu là false
 
-
   const handleLike = (index, id_artwork, id_user) => {
-
     const updatedLikedProducts = [...likedProducts];
     updatedLikedProducts[index] = !updatedLikedProducts[index];
     setLikedProducts(updatedLikedProducts);
@@ -208,16 +263,13 @@ export default function Profile() {
     updatedLikedProductIds[index] = updatedLikedProductIds[index] + 1;
     setLikedProductIds(updatedLikedProductIds);
     postData(`/artwork/likeArtwork/${id_artwork}/${id_user}`, {})
-      .then((e) => {
-      })
-      .catch(err => {
+      .then((e) => {})
+      .catch((err) => {
         console.log(err);
       });
-
   };
 
   const handleUnLike = (index, id_artwork, id_user) => {
-
     const updatedLikedProducts = [...likedProducts];
     updatedLikedProducts[index] = !updatedLikedProducts[index];
     setLikedProducts(updatedLikedProducts);
@@ -226,12 +278,10 @@ export default function Profile() {
     updatedLikedProductIds[index] = updatedLikedProductIds[index] - 1;
     setLikedProductIds(updatedLikedProductIds);
     postData(`/artwork/unlikeArtwork/${id_artwork}/${id_user}`, {})
-      .then((e) => {
-      })
-      .catch(err => {
+      .then((e) => {})
+      .catch((err) => {
         console.log(err);
       });
-
   };
   const onChange = (data) => {
     const selectedImages = data;
@@ -242,34 +292,31 @@ export default function Profile() {
     console.log([selectedImages]);
     setImages([selectedImages]);
     // setFileList(data);
-  }
+  };
   useEffect(() => {
     getData(`/user/${token?._doc?._id}`)
       .then((user) => {
-        setAuthor(user.data)
-
+        setAuthor(user.data);
       })
       .catch((error) => {
-        setError(true)
+        setError(true);
         console.log(error);
-      })
-
+      });
   }, [token?._doc?._id]);
 
   if (error) {
     return <PageNotFound />;
   }
   const handleMenuClick = (e) => {
-
     switch (e.key) {
-      case '1':
-        showModal()
+      case "1":
+        showModal();
         break;
-      case '2':
-        showModal1()
+      case "2":
+        showModal1();
         break;
-      case '3':
-         showModal3();
+      case "3":
+        showModal3();
         break;
       default:
         break;
@@ -292,18 +339,18 @@ export default function Profile() {
   };
   const items = [
     {
-      label: 'Đổi ảnh đại diện',
-      key: '1',
+      label: "Đổi ảnh đại diện",
+      key: "1",
     },
     {
-      label: 'Đổi thông tin cá nhân',
-      key: '2',
+      label: "Đổi thông tin cá nhân",
+      key: "2",
     },
     {
-      label: 'Đổi mật khẩu',
-      key: '3',
+      label: "Đổi mật khẩu",
+      key: "3",
     },
-  ]
+  ];
   const itemPosts = [
     {
       label: "Chỉnh sửa bài",
@@ -347,40 +394,30 @@ export default function Profile() {
     onClick: handleMenuPostClick,
   };
   const onSubmit = () => {
-    setDisabled(true)
-    firebaseImgs(image)
-      .then((img) => {
-
-        putData(`/user`, token?._doc?._id, { avatar: img[0] })
-          .then((data) => {
-            api["success"]({
-              message: "Thành công",
-              description:
-                "Ảnh đại diện của bạn đã được thanh đổi"
-            });
-            setToken(data)
-
-            setTimeout(() => {
-              navigate(`/author/${token?._doc?._id}`)
-            }, 2000);
-
-          })
-          .catch((error) => {
-            setDisabled(false)
-
-            api["error"]({
-              message: "Lỗi",
-              description:
-                "Hiện đang gặp phải vấn đề vui lòng thử lại sau"
-            });
-
+    setDisabled(true);
+    firebaseImgs(image).then((img) => {
+      putData(`/user`, token?._doc?._id, { avatar: img[0] })
+        .then((data) => {
+          api["success"]({
+            message: "Thành công",
+            description: "Ảnh đại diện của bạn đã được thanh đổi",
           });
+          setToken(data);
 
+          setTimeout(() => {
+            navigate(`/author/${token?._doc?._id}`);
+          }, 2000);
+        })
+        .catch((error) => {
+          setDisabled(false);
 
-      });
-
-
-  }
+          api["error"]({
+            message: "Lỗi",
+            description: "Hiện đang gặp phải vấn đề vui lòng thử lại sau",
+          });
+        });
+    });
+  };
   const onSubmit2 = (data) => {
     setDisabled(true);
 
@@ -415,44 +452,39 @@ export default function Profile() {
     });
   };
   const onSubmit1 = (data) => {
-    setError("")
+    setError("");
     putData(`/user`, token?._doc?._id, data)
       .then((data) => {
         if (data?.keyValue?.email) {
-          setError1('Tài khoản mail này đã có người sửa dụng')
+          setError1("Tài khoản mail này đã có người sửa dụng");
         }
 
         if (data?.keyValue?.phone) {
-          setError1('Số điện thoại này đã có người sửa dụng')
+          setError1("Số điện thoại này đã có người sửa dụng");
         }
         if (data?._doc) {
           api["success"]({
             message: "Thành công",
-            description:
-              "Thông tin thay đổi thành công"
+            description: "Thông tin thay đổi thành công",
           });
-          setToken(data)
+          setToken(data);
           setTimeout(() => {
-            navigate(`/author/${token?._doc?._id}`)
+            navigate(`/author/${token?._doc?._id}`);
           }, 2000);
         }
-
-
       })
       .catch((error) => {
-        setError1(error?.response?.data?.error)
+        setError1(error?.response?.data?.error);
         if (error?.response?.data?.keyValue?.email) {
-          setError1('Tài khoản mail này đã có người sửa dụng')
+          setError1("Tài khoản mail này đã có người sửa dụng");
         }
 
         if (error?.response?.data?.keyValue?.phone) {
-          setError1('Số điện thoại này đã có người sửa dụng')
+          setError1("Số điện thoại này đã có người sửa dụng");
         }
         console.error("Error fetching items:", error);
-
       });
-
-  }
+  };
   if (Author.hidden) {
     // return <PageNotFound />
   }
@@ -460,7 +492,6 @@ export default function Profile() {
     <>
       {contextHolder}
       <ComHeader />
-
       <div className="bg-white rounded-lg shadow-xl pb-8">
         <div
           x-data="{ openSettings: false }"
@@ -530,8 +561,10 @@ export default function Profile() {
           </div>
           {!Author.hidden ? (
             <p className="text-gray-700">
-              {Author?.follow?.length} người theo dõi ·{" "}
-              {Author?.followAdd?.length} người đang theo dõi
+              {Author?.follow?.length}{" "}
+              <span onClick={showModal4}>người theo dõi</span> ·{" "}
+              {Author?.followAdd?.length}{" "}
+              <span onClick={showModal5}>người đang theo dõi</span>
             </p>
           ) : (
             "Tài khoản của bạn đã bị khóa"
@@ -571,7 +604,6 @@ export default function Profile() {
           Lưu
         </ComButton>
       </Modal>
-
       <Modal
         title="Đổi thông tin tài khoản"
         open={isModalOpen1}
@@ -610,9 +642,49 @@ export default function Profile() {
               {...register("email")}
               required
             />
+            {Author.role === "creator" && (
+              <ComInput
+                label={"Tài khoản paypal"}
+                placeholder={"Vui lòng nhập tài khoản paypal"}
+                type="text"
+                onchange={() => {
+                  setError("");
+                }}
+                {...register("paypalAccount")}
+                required
+              />
+            )}
             <h1 className="text-red-500">{error1}</h1>
             <ComButton htmlType="submit" type="primary">
               Thay đổi
+            </ComButton>
+          </form>
+        </FormProvider>
+      </Modal>
+      <Modal
+        title="Thêm tài khoản Paypal"
+        open={paypalAccount === "true"}
+        onOk={() => navigate("/profile")}
+        onCancel={() => navigate("/profile")}
+      >
+        <FormProvider {...methods}>
+          <form
+            className="flex flex-col gap-6"
+            onSubmit={handleSubmit(onSubmit1)}
+          >
+            <ComInput
+              label={"Tài khoản paypal"}
+              placeholder={"Vui lòng nhập tài khoản paypal"}
+              type="text"
+              onchange={() => {
+                setError("");
+              }}
+              {...register("paypalAccount")}
+              required
+            />
+            <h1 className="text-red-500">{error1}</h1>
+            <ComButton htmlType="submit" type="primary">
+              cập nhật
             </ComButton>
           </form>
         </FormProvider>
@@ -663,6 +735,103 @@ export default function Profile() {
       >
         <ChangePassword handleCancel3={handleCancel3} />
       </Modal>
+      <Modal
+        title="người theo dõi"
+        open={isModalOpen4}
+        onOk={handleOk4}
+        onCancel={handleCancel4}
+      >
+        <div className="text-center">
+          {Author?.follow &&
+            Author?.follow.map((user, index) => (
+              <div
+                className="rounded-xl overflow-hidden relative text-center group items-center flex flex-col max-w-sm hover:shadow-2xl transition-all duration-500 shadow-xl"
+                style={{
+                  display: "inline-table",
+                  margin: "0px 5px",
+                  width: "92%",
+                }}
+              >
+                <Link
+                  to={`/author/${user.user._id}`}
+                  className={`card px-6 py-8 sm:p-10 sm:pb-6`}
+                  key={index}
+                  style={{ display: "flex", alignItems: "center" }}
+                  onClick={handleCancel4}
+                >
+                  <img
+                    className="rounded-md p-1"
+                    src={user.user.avatar}
+                    style={{
+                      borderRadius: "50%",
+                      width: "60px",
+                      height: "60px",
+                    }}
+                    alt={user.user.avatar}
+                    // onLoad={() =>
+                    //   containerRef.current.dispatchEvent(new Event("load"))
+                    // }
+                  />
+                  <div style={{ paddingLeft: "10px", textAlign: "justify" }}>
+                    <p className="text-base font-medium text-gray-700">
+                      {user.user.username}
+                    </p>
+                    <span>{user.user?.follow?.length} follow</span>
+                  </div>
+                </Link>
+              </div>
+            ))}
+        </div>
+      </Modal>
+      <Modal
+        title="người đang theo dõi"
+        open={isModalOpen5}
+        onOk={handleOk5}
+        onCancel={handleCancel5}
+      >
+        <div className="text-center">
+          {Author?.followAdd &&
+            Author?.followAdd.map((user, index) => (
+              <div
+                className="rounded-xl overflow-hidden relative text-center group items-center flex flex-col max-w-sm hover:shadow-2xl transition-all duration-500 shadow-xl"
+                style={{
+                  display: "inline-table",
+                  margin: "0px 5px",
+                  width: "92%",
+                }}
+              >
+                <Link
+                  to={`/author/${user.user._id}`}
+                  className={`card px-6 py-8 sm:p-10 sm:pb-6`}
+                  key={index}
+                  style={{ display: "flex", alignItems: "center" }}
+                  onClick={handleCancel5}
+                >
+                  <img
+                    className="rounded-md p-1"
+                    src={user.user.avatar}
+                    style={{
+                      borderRadius: "50%",
+                      width: "60px",
+                      height: "60px",
+                    }}
+                    alt={user.user.avatar}
+                    // onLoad={() =>
+                    //   containerRef.current.dispatchEvent(new Event("load"))
+                    // }
+                  />
+                  <div style={{ paddingLeft: "10px", textAlign: "justify" }}>
+                    <p className="text-base font-medium text-gray-700">
+                      {user.user.username}
+                    </p>
+                    <span>{user.user?.follow?.length} follow</span>
+                  </div>
+                </Link>
+              </div>
+            ))}
+        </div>
+      </Modal>
+      <ComFooter />
     </>
   );
 }

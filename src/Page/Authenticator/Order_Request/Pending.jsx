@@ -5,6 +5,7 @@ import { Button } from "antd";
 import { Link } from "react-router-dom";
 export default function Pending({ activeTab }) {
   const [order, setOrder] = useState([]);
+  console.log("🚀 ~ Pending ~ order:", order);
   const [products, setProducts] = useState([]);
 
   useEffect(() => {
@@ -44,16 +45,16 @@ export default function Pending({ activeTab }) {
       });
     }
   }
-  const updateStatus = (id,status) => {
-      putData("customOrder/user/processing", id, { status })
-        .then((data) => {
-          setOrder(order.filter((item) => item._id !== id));
-        })
-        .catch((error) => {
-          console.error("Error fetching products:", error);
-        });
+  const updateStatus = (id, status) => {
+    putData("customOrder/user/processing", id, { status })
+      .then((data) => {
         setOrder(order.filter((item) => item._id !== id));
-}
+      })
+      .catch((error) => {
+        console.error("Error fetching products:", error);
+      });
+    setOrder(order.filter((item) => item._id !== id));
+  };
   return (
     <div className="container mx-auto p-4">
       <h1 className="text-2xl font-semibold mb-4">
@@ -72,6 +73,9 @@ export default function Pending({ activeTab }) {
         <table className="min-w-full divide-y divide-gray-200">
           <thead>
             <tr>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                Tên Người làm
+              </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
                 Tên Đơn Hàng
               </th>
@@ -105,6 +109,11 @@ export default function Pending({ activeTab }) {
             {order?.map((orderData) => (
               <tr key={orderData.index}>
                 <td className="px-6 py-4 whitespace-nowrap">
+                  <Link to={`/author/${orderData.freelancer._id}`}>
+                    {orderData.freelancer.name}
+                  </Link>
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap">
                   <Link to={`/required/bill/${orderData._id}?view=true`}>
                     {orderData.bird}
                   </Link>
@@ -132,7 +141,7 @@ export default function Pending({ activeTab }) {
                 <td className="px-6 py-4 whitespace-nowrap">
                   {orderData.status}
                 </td>
-                {orderData?.freelancerOrders && (
+                {orderData?.freelancerOrders ? (
                   <td className="px-6 py-4 whitespace-nowrap">
                     <Button
                       type="primary"
@@ -147,6 +156,16 @@ export default function Pending({ activeTab }) {
                       onClick={() => updateStatus(orderData._id, "Canceled")}
                     >
                       Từ chối
+                    </Button>
+                  </td>
+                ) : (
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <span style={{ padding: "2px" }}></span>
+                    <Button
+                      danger
+                      onClick={() => updateStatus(orderData._id, "Canceled")}
+                    >
+                      Hủy Đơn Hàng
                     </Button>
                   </td>
                 )}

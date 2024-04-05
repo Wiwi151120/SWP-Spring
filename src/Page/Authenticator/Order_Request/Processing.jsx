@@ -8,53 +8,44 @@ export default function Pprocessing({ activeTab }) {
   const [products, setProducts] = useState([]);
 
   useEffect(() => {
-
-    getData('/product', {})
+    getData("/product", {})
       .then((productData) => {
-
         setProducts(productData?.data);
-
       })
       .catch((error) => {
         console.error("Error fetching products:", error);
       });
 
-    getData('/customOrder/user/processing', {})
+    getData("/customOrder/user/processing", {})
       .then((orderData) => {
-                const newArray =
-                  orderData.data.freelancerOrders.length > 0
-                    ? orderData.data.freelancerOrders.map((item) => {
-                        const updatedItem = { ...item };
-                        updatedItem.freelancerOrders = true;
-                        return updatedItem;
-                      })
-                    : [];
-                const combinedOrders = [
-                  ...orderData.data.userOrders,
-                  ...newArray,
-                ];
-                setOrder(combinedOrders);
-
+        const newArray =
+          orderData.data.freelancerOrders.length > 0
+            ? orderData.data.freelancerOrders.map((item) => {
+                const updatedItem = { ...item };
+                updatedItem.freelancerOrders = true;
+                return updatedItem;
+              })
+            : [];
+        const combinedOrders = [...orderData.data.userOrders, ...newArray];
+        setOrder(combinedOrders);
       })
       .catch((error) => {
         console.error("Error fetching items:", error);
-
       });
     // }
   }, [activeTab]);
   function formatCurrency(number) {
     // Sử dụng hàm toLocaleString() để định dạng số thành chuỗi với ngăn cách hàng nghìn và mặc định là USD.
     if (typeof number === "number") {
-
-      return number.toLocaleString('en-US', {
-        style: 'currency',
-        currency: 'VND',
+      return number.toLocaleString("en-US", {
+        style: "currency",
+        currency: "VND",
       });
     }
   }
   const getProductById = (productId) => {
     // Tìm sản phẩm theo ID trong danh sách sản phẩm
-    return products?.docs?.find(product => product._id === productId);
+    return products?.docs?.find((product) => product._id === productId);
   };
   const updateStatus = (id, status) => {
     putData("customOrder/user/processing", id, { status })
@@ -64,7 +55,7 @@ export default function Pprocessing({ activeTab }) {
       .catch((error) => {
         console.error("Error fetching products:", error);
       });
-      setOrder(order.filter((item) => item._id !== id));
+    setOrder(order.filter((item) => item._id !== id));
   };
   return (
     <div className="container mx-auto p-4">
@@ -84,6 +75,9 @@ export default function Pprocessing({ activeTab }) {
         <table className="min-w-full divide-y divide-gray-200">
           <thead>
             <tr>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                Tên Người làm
+              </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
                 Tên Đơn Hàng
               </th>
@@ -114,6 +108,11 @@ export default function Pprocessing({ activeTab }) {
           <tbody>
             {order?.map((orderData) => (
               <tr key={orderData.index}>
+                <td className="px-6 py-4 whitespace-nowrap">
+                  <Link to={`/author/${orderData.freelancer._id}`}>
+                    {orderData.freelancer.name}
+                  </Link>
+                </td>
                 <td className="px-6 py-4 whitespace-nowrap">
                   <Link to={`/required/bill/${orderData._id}?view=true`}>
                     {orderData.bird}
