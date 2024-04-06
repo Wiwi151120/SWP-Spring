@@ -1,556 +1,426 @@
+import { Fragment, useEffect, useState } from "react";
+import { Dialog, Transition } from "@headlessui/react";
+import { XMarkIcon } from "@heroicons/react/24/outline";
+import { Button, Checkbox, InputNumber } from "antd";
+import { textApp } from "../../../TextContent/textApp";
+import { Link, useNavigate } from "react-router-dom";
+import Modal from "react-modal";
+import { useStorage } from "../../../hooks/useLocalStorage";
 
-import { useEffect, useState } from 'react'
-import ComHeader from '../../Components/ComHeader/ComHeader'
-import { getData, postData } from '../../../api/api'
-import { Link, useNavigate, useParams } from 'react-router-dom'
+Modal.setAppElement("#root");
 
-import { Button, Image, Modal, notification } from 'antd'
-import PageNotFound from '../404/PageNotFound'
-import { HoverCard, HoverCardContent, HoverCardTrigger } from '@radix-ui/react-hover-card'
-import { CalendarDays } from 'lucide-react'
-import InfiniteScroll from 'react-infinite-scroll-component'
-import {
-  LikeOutlined,
-  CommentOutlined
-} from '@ant-design/icons';
-import { useStorage } from '../../../hooks/useLocalStorage'
-import { useSocket } from '../../../App'
-import ReportModal from './ReportModal'
-import axios from 'axios'
-import ComFooter from '../../Components/ComFooter/ComFooter'
-export default function Author() {
-  const socket = useSocket()
-  const [Author, setAuthor] = useState([])
-  const { id } = useParams();
-  const [api, contextHolder] = notification.useNotification();
-  const [error, setError] = useState(false);
-  const [products, setProducts] = useState([]);
-   const [isModalOpen, setIsModalOpen] = useState(false);
-    const [isModalOpen1, setIsModalOpen1] = useState(false);
-  const [hasMore, setHasMore] = useState(true);
-  const [follow, setFollow] = useState(false);
-  const [page, setPage] = useState(1);
-  const [likedProducts, setLikedProducts] = useState([]);
-  const [allUser, setAllUser] = useState([]);
+export default function ShoppingCart({ show, updateShoppingCart }) {
+  const [open, setOpen] = useState(show);
+  const [disabled, setDisabled] = useState(false);
+  const [check, setCheck] = useState(false);
+  const [test, setTest] = useState(false);
+  const [checkedList, setCheckedList] = useState([]);
+  console.log("🚀 ~ ShoppingCart ~ checkedList:", checkedList);
+  const [cart, setCart] = useStorage("cart", []);
+  console.log("🚀 ~ ShoppingCart ~ cart:", cart);
+  const [totalAmount, setTotalAmount] = useState(0);
   const navigate = useNavigate();
-  const [token, setToken] = useStorage("user", {});
-  const [likedProductIds, setLikedProductIds] = useState([])
-  const [openModal, setOpenModal] = useState(false)
-
-
-  const handFollow = () => {
-    setFollow(!follow);
-    postData(`/user/followUser/${id}/${token?._doc?._id}`, {})
-      .then((e) => {
-        console.log( e);
-      })
-      .catch(err => {
-        console.log(err);
+  const nonDisabledProducts = cart.filter((product) => product.quantity > 0);
+  const checkAll = nonDisabledProducts.length === checkedList.length;
+  const indeterminate =
+    checkedList.length > 0 && checkedList.length < nonDisabledProducts.length;
+  const removeProduct = (productId) => {
+    // Sử dụng window.confirm() để xác nhận xóa sản phẩm
+    const confirmDelete = window.confirm(
+      "Bạn có chắc chắn muốn xóa sản phẩm này?"
+    );
+    if (confirmDelete) {
+      const removedProduct = cart.find((item) => item._id === productId);
+      const updatedCart = cart.filter((item) => item._id !== productId);
+      const groupedData = new Map();
+      updatedCart.forEach((item) => {
+        const userId = item.user?._id;
+        if (!groupedData.has(userId)) {
+          groupedData.set(userId, []);
+        }
+        groupedData.get(userId).push(item);
       });
-    sendNotification("", 2)
-  }
-  const handUndFollow = () => {
-    setFollow(!follow);
-    postData(`/user/undFollowUser/${id}/${token?._doc?._id}`, {})
-      .then((e) => {
-        console.log(e);
-      })
-      .catch(err => {
-        console.log(err);
-      });
-
-  }
-
-  const handleRequest = () => {
-    navigate("/require?id=" + Author?._id)
-  }
-
-  const sendNotification = async (textType, type) => {
-    socket.emit("push_notification", { pusher: token._doc, author: Author?._id, textType, type, link: window.location.href })
-    const res = await axios({
-      url: "http://localhost:5000/api/notification",
-      method: "post",
-      data: {
-        pusher: token._doc, author: Author?._id, textType, type, link: window.location.href
-      }
-    })
-  }
-  const fetchData = async (pageNumber) => {
-    try {
-      const response = await getData(`/artwork/user/${id}?page=${pageNumber}&limit=10`);
-      const newArray =
-        response.data.docs.length > 0
-          ? response.data.docs.filter((item) => item.hidden !== true)
-          : [];
-      return newArray;
-    } catch (error) {
-      return [];
+      const result = Array.from(groupedData.values());
+      setTest(result);
+      setCart(updatedCart);
     }
   };
-  const fetchMoreProducts = async () => {
-    const newProducts = await fetchData(page + 1);
-    if (newProducts.length === 0) {
-      setHasMore(false); // No more data to load
+  const onChange = (list) => {
+    setCheckedList(list);
+  };
+  const onCheckAllChange = (e) => {
+    const nonDisabledProducts = cart.filter((product) => product.quantity > 0);
+    setCheckedList(e.target.checked ? nonDisabledProducts : []);
+  };
+  useEffect(() => {
+    if (checkedList.length === 0) {
+      setDisabled(true);
     } else {
-      setProducts([...products, ...newProducts]);
-      const userLikesArray = newProducts.map(product => product.likes.some(like => like.user === token?._doc?._id));
+      setDisabled(false);
+    }
+  }, [checkedList]);
 
-      const likesCountArray = newProducts.map(product => product.likes.length);
-      setLikedProducts([...likedProducts, ...userLikesArray])
-      setLikedProductIds([...likedProductIds, ...likesCountArray])
-      setPage(page + 1);
+  useEffect(() => {
+    // Kiểm tra xem có ít nhất một sản phẩm được chọn hay không
+    if (checkedList.length > 0) {
+      setDisabled(false); // Khi có ít nhất một sản phẩm được chọn, kích hoạt nút "Xóa tất cả"
+    } else {
+      setDisabled(true);
+    }
+    let total = 0;
+    for (const product of checkedList) {
+      total += product.price * product.data;
+    }
+    setTotalAmount(total);
+  }, [checkedList]);
+  // Hàm để chọn hoặc bỏ chọn sản phẩm
+  const toggleProductSelection = (productId) => {
+    if (checkedList.includes(productId)) {
+      // Bỏ chọn sản phẩm nếu đã chọn
+      setCheckedList(checkedList.filter((id) => id !== productId));
+    } else {
+      // Chọn sản phẩm nếu chưa chọn
+      setCheckedList([...checkedList, productId]);
+    }
+  };
+
+  const removeAllSelectedProducts = () => {
+    const confirmDelete = window.confirm(
+      "Bạn có chắc chắn muốn xóa các sản phẩm này?"
+    );
+    if (confirmDelete) {
+      // Lấy danh sách các ID sản phẩm đã chọn
+      const selectedProductIds = checkedList.map((product) => product._id);
+      // Lọc ra các sản phẩm không nằm trong danh sách đã chọn
+      const updatedCart = cart.filter(
+        (product) => !selectedProductIds.includes(product._id)
+      );
+      const groupedData = new Map();
+      updatedCart.forEach((item) => {
+        const userId = item.user?._id;
+        if (!groupedData.has(userId)) {
+          groupedData.set(userId, []);
+        }
+        groupedData.get(userId).push(item);
+      });
+      const result = Array.from(groupedData.values());
+      setTest(result);
+      setCart(updatedCart);
+      setCheckedList([]); // Bỏ chọn tất cả sau khi xóa
+      localStorage.setItem("cart", JSON.stringify(updatedCart)); // Cập nhật dữ liệu trong localStorage
     }
   };
 
   useEffect(() => {
-    if (token?._doc?._id === id) {
-      navigate('/profile')
+    setOpen(show);
+    if (show) {
+      setCheckedList([]);
+      // updateShoppingCart(true);
     }
-    const loadInitialData = async () => {
-      const initialProducts = await fetchData(page);
-      setProducts(initialProducts);
-      const userLikesArray = initialProducts.map(product => product.likes.some(like => like.user === token?._doc?._id));
-      const likesCountArray = initialProducts.map(product => product.likes.length);
-      setLikedProductIds(likesCountArray)
-      setLikedProducts(userLikesArray)
-    };
-    loadInitialData();
-  }, []); // Run only once on component mount
-
-  const getUserById = (array, userId) => {
-    // Sử dụng find để tìm user với _id tương ứng
-    const user = array.find(item => item._id === userId);
-    return user;
-  };
-
-
-  useEffect(() => {
-    getData('/user', {})
-      .then((data) => {
-        setAllUser(data?.data?.docs)
-      })
-      .catch((error) => {
-        console.error("Error fetching items:", error);
-      });
-    // return response.data.docs;
-  }, []);
-
-  // useEffect để thiết lập mảng likedProducts có độ dài bằng độ dài của mảng products và mỗi phần tử có giá trị ban đầu là false
-
-
-  const handleLike = (index, id_artwork, id_user) => {
-
-    const updatedLikedProducts = [...likedProducts];
-    updatedLikedProducts[index] = !updatedLikedProducts[index];
-    setLikedProducts(updatedLikedProducts);
-
-    const updatedLikedProductIds = [...likedProductIds];
-    updatedLikedProductIds[index] = updatedLikedProductIds[index] + 1;
-    setLikedProductIds(updatedLikedProductIds);
-    postData(`/artwork/likeArtwork/${id_artwork}/${id_user}`, {})
-      .then((e) => {
-      })
-      .catch(err => {
-        console.log(err);
-      });
-
-  };
-
-  const handleUnLike = (index, id_artwork, id_user) => {
-    const updatedLikedProducts = [...likedProducts];
-    updatedLikedProducts[index] = !updatedLikedProducts[index];
-    setLikedProducts(updatedLikedProducts);
-
-    const updatedLikedProductIds = [...likedProductIds];
-    updatedLikedProductIds[index] = updatedLikedProductIds[index] - 1;
-    setLikedProductIds(updatedLikedProductIds);
-    postData(`/artwork/unlikeArtwork/${id_artwork}/${id_user}`, {})
-      .then((e) => {
-      })
-      .catch(err => {
-        console.log(err);
-      });
-
-  };
-    const handleOk = () => {
-      setIsModalOpen(false);
-    };
-    const handleCancel = () => {
-      setIsModalOpen(false);
-    };
-    const handleOk1 = () => {
-      setIsModalOpen1(false);
-    };
-    const handleCancel1 = () => {
-      setIsModalOpen1(false);
-    };
-  const showModal = () => {
-    setIsModalOpen(true);
-  };
-  const showModal1 = () => {
-    setIsModalOpen1(true);
+    const groupedData = new Map();
+    JSON.parse(localStorage.getItem("cart")).forEach((item) => {
+      const userId = item.user?._id;
+      if (!groupedData.has(userId)) {
+        groupedData.set(userId, []);
+      }
+      groupedData.get(userId).push(item);
+    });
+    const result = Array.from(groupedData.values());
+    setCart(JSON.parse(localStorage.getItem("cart")));
+    setTest(result);
+  }, [show]);
+  const handleCartClose = () => {
+    // Gọi hàm callback để cập nhật giá trị shoppingCart thành false
+    updateShoppingCart(false);
   };
   useEffect(() => {
-    if (!token?._doc?._id) {
-      return navigate('/login')
-    }
-    getData(`/user/${id}`)
-      .then((user) => {
-        setAuthor(user.data)
-        const userFollowAdd = (user?.data?.follow || []).some(Follow => Follow.user === token?._doc?._id);
-        setFollow(userFollowAdd)
-      })
-      .catch((error) => {
-        setError(true)
-        console.log(error);
-      })
+    localStorage.setItem("cart", JSON.stringify(cart));
+  }, [cart, check]);
 
-  }, [id, follow]);
+  const removeFromCart = (productId) => {
+    const updatedCart = cart.filter((item) => item._id !== productId);
+    setCart(updatedCart);
+  };
+  const selectedProducts = checkedList.map((product) => {
+    const cartProduct = cart.find((item) => item._id === product._id);
+    return {
+      ...cartProduct,
+      quantityCart: product.quantityCart, // Cập nhật quantityCart theo giá trị từ checkedList
+    };
+  });
+  const onSubmit = () => {
+    setOpen(false);
+    handleCartClose();
+    const selectedProductIds = checkedList.map((product) => product._id);
+    const updatedCart = cart.filter(
+      (product) => !selectedProductIds.includes(product._id)
+    );
+    setCart(updatedCart);
+    setCheckedList([]); // Bỏ chọn tất cả sản phẩm đã chọn
+    localStorage.setItem("cart", JSON.stringify(updatedCart)); // Cập nhật dữ liệu trong localStorage
+    // Thực hiện các hành động liên quan đến thanh toán ở đây
+    // Chuyển người dùng đến trang thanh toán hoặc thực hiện các hành động cần thiết
+    navigate("/payment", { state: { dataProduct: selectedProducts } });
+  };
 
-  if (error) {
-    return <PageNotFound />;
+  const handleQuantityChange = (productId, newQuantity) => {
+    // Tìm sản phẩm trong cart có id là productId và cập nhật giá trị quantityCart
+    const updatedCart = cart.slice().map((product) => {
+      if (product._id === productId) {
+        return { ...product, data: newQuantity };
+      }
+      return product;
+    });
+    const groupedData = new Map();
+    updatedCart.forEach((item) => {
+      const userId = item.user?._id;
+      if (!groupedData.has(userId)) {
+        groupedData.set(userId, []);
+      }
+      groupedData.get(userId).push(item);
+    });
+    const result = Array.from(groupedData.values());
+    setTest(result);
+    setCart(updatedCart);
+  };
+  function formatCurrency(number) {
+    // Sử dụng hàm toLocaleString() để định dạng số thành chuỗi với ngăn cách hàng nghìn và mặc định là USD.
+    return number?.toLocaleString("en-US", {
+      style: "currency",
+      currency: "VND",
+    });
   }
-  console.log(Author);
-  if (Author.hidden) {
-    return <PageNotFound />
-  }
+  const calculateTotalAmount = () => {
+    let total = 0;
+    for (const product of cart) {
+      total += product.reducedPrice;
+    }
+    return total;
+  };
+
   return (
-    <>
-      {contextHolder}
-      <ComHeader />
-      <div className="bg-white rounded-lg shadow-xl pb-8">
-        <div
-          x-data="{ openSettings: false }"
-          className="absolute right-12 mt-4 rounded"
+    <Transition.Root show={open} as={Fragment}>
+      <Dialog
+        as="div"
+        className="relative z-10"
+        onClose={() => {
+          setOpen(false);
+          handleCartClose();
+        }}
+      >
+        <Transition.Child
+          as={Fragment}
+          enter="ease-in-out duration-500"
+          enterFrom="opacity-0"
+          enterTo="opacity-100"
+          leave="ease-in-out duration-500"
+          leaveFrom="opacity-100"
+          leaveTo="opacity-0"
         >
-          <button
-            className="border border-gray-400 p-2 rounded text-gray-300 hover:text-gray-300 bg-gray-100 bg-opacity-10 hover:bg-opacity-20"
-            title="Settings"
-          >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              className="h-4 w-4"
-              fill="currentColor"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="3"
-                d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z"
-              ></path>
-            </svg>
-          </button>
-        </div>
-        <div className="w-full h-[250px]">
-          <img
-            src="https://vojislavd.com/ta-template-demo/assets/img/profile-background.jpg"
-            className=" object-cover w-full h-full rounded-tl-lg rounded-tr-lg"
-            alt=""
-          />
-        </div>
-        <>
-          {!Author.hidden ? (
-            <div className="flex flex-col items-center -mt-20">
-              <img
-                src={Author?.avatar}
-                className="w-40  h-40 border-4 border-white rounded-full"
-                alt=""
-              />
-              <div className="flex items-center space-x-2 mt-2">
-                <p className="text-2xl">{Author?.name}</p>
-                <span className="bg-blue-500 rounded-full p-1" title="Verified">
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    className="text-gray-100 h-2.5 w-2.5"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                  >
-                    <path
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                      stroke-width="4"
-                      d="M5 13l4 4L19 7"
-                    ></path>
-                  </svg>
-                </span>
-              </div>
-              <p className="text-gray-700">
-                {Author?.follow?.length}{" "}
-                <span onClick={showModal}>người theo dõi</span> ·{" "}
-                {Author?.followAdd?.length}{" "}
-                <span onClick={showModal1}>người đang theo dõi</span>
-              </p>
-              {parseInt(Author?.follow?.length) > 4 && (
-                <button
-                  onClick={handleRequest}
-                  className="flex items-center bg-blue-600 hover:bg-blue-700 text-gray-100 px-4 py-2 rounded text-sm space-x-2 transition duration-100"
-                >
-                  Yêu cầu
-                </button>
-              )}
-              <br />
-              {Author?.role !== "admin" && (
-                <button
-                  onClick={() => setOpenModal(true)}
-                  className="flex items-center bg-blue-600 hover:bg-blue-700 text-gray-100 px-4 py-2 rounded text-sm space-x-2 transition duration-100"
-                >
-                  Report user
-                </button>
-              )}
-              <ReportModal
-                isModalOpen={openModal}
-                setIsModalOpen={setOpenModal}
-                accuse={Author}
-                user={token}
-              />
-              <div className="flex-1 flex flex-col items-center lg:items-end justify-end px-8 mt-2 mb-8">
-                <div className="flex items-center space-x-4 mt-2">
-                  {!follow ? (
-                    <button
-                      onClick={handFollow}
-                      className="flex items-center bg-blue-600 hover:bg-blue-700 text-gray-100 px-4 py-2 rounded text-sm space-x-2 transition duration-100"
-                    >
-                      <span>Theo dõi</span>
-                    </button>
-                  ) : (
-                    <button
-                      onClick={handUndFollow}
-                      className="flex items-center bg-slate-500 hover:bg-slate-700 text-gray-100 px-4 py-2 rounded text-sm space-x-2 transition duration-100"
-                    >
-                      <span>Hủy theo dõi</span>
-                    </button>
-                  )}
-                </div>
-              </div>
-            </div>
-          ) : (
-            "tài khoản này đã bị khóa"
-          )}
-        </>
+          <div className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" />
+        </Transition.Child>
 
-        <InfiniteScroll
-          dataLength={products.length}
-          next={fetchMoreProducts}
-          hasMore={hasMore}
-        >
-          <div className="grid gap-4 justify-center ">
-            {products.map((artwork, index) => (
-              <div
-                key={index}
-                className=" w-screen bg-[#f3f9f140] sm:w-[600px] lg:w-[900px] xl:w-[1000px] xl:gap-x-8 shadow-md rounded-lg border-solid border-2 border-[#89898936] "
+        <div className="fixed inset-0 overflow-hidden">
+          <div className="absolute inset-0 overflow-hidden">
+            <div className="pointer-events-none fixed inset-y-0 right-0 flex max-w-full pl-10">
+              <Transition.Child
+                as={Fragment}
+                enter="transform transition ease-in-out duration-500 sm:duration-700"
+                enterFrom="translate-x-full"
+                enterTo="translate-x-0"
+                leave="transform transition ease-in-out duration-500 sm:duration-700"
+                leaveFrom="translate-x-0"
+                leaveTo="translate-x-full"
               >
-                <HoverCard>
-                  <div className="px-2 py-1 flex items-center gap-2 w-auto">
-                    <HoverCardTrigger>
-                      {" "}
-                      <Link to={`/author/${artwork.user}`}>
-                        <img
-                          className="inline-block h-10 w-10 object-cover rounded-full ring-2 ring-white"
-                          src={getUserById(allUser, artwork.user)?.avatar}
-                          alt=""
-                        />
-                      </Link>{" "}
-                    </HoverCardTrigger>
-                    <HoverCardTrigger>
-                      <Link to={`/author/${artwork.user}`} className="text-2xl">
-                        {getUserById(allUser, artwork.user)?.name}
-                      </Link>
-                    </HoverCardTrigger>
-                  </div>
+                <Dialog.Panel className="pointer-events-auto w-screen max-w-md">
+                  <div className="flex h-full flex-col overflow-y-scroll bg-white shadow-xl">
+                    <div className="flex-1 overflow-y-auto px-4 py-6 sm:px-6">
+                      <div className="flex items-start justify-between">
+                        <Dialog.Title className="text-lg font-medium text-gray-900">
+                          {textApp.ShoppingCart.tile}
+                        </Dialog.Title>
+                        <div className="ml-3 flex h-7 items-center">
+                          <button
+                            type="button"
+                            className="relative -m-2 p-2 text-gray-400 hover:text-gray-500"
+                            onClick={() => {
+                              setOpen(false);
+                              handleCartClose();
+                            }}
+                          >
+                            <span className="absolute -inset-0.5" />
+                            <span className="sr-only">Close panel</span>
+                            <XMarkIcon className="h-6 w-6" aria-hidden="true" />
+                          </button>
+                        </div>
+                      </div>
+                      {/* <Checkbox indeterminate={indeterminate} onChange={onCheckAllChange} checked={checkAll}>
+                        {textApp.ShoppingCart.checkbox}
+                      </Checkbox> */}
 
-                  <HoverCardContent className="relative transform  rounded-lg bg-slate-100 text-left shadow-xl transition-all p-2 z-50 ">
-                    <div className="flex justify-between space-x-4">
-                      <img
-                        className="inline-block h-12 w-12 object-cover rounded-full ring-2 ring-white"
-                        src={getUserById(allUser, artwork.user)?.avatar}
-                        alt=""
-                      />
-                      <div className="space-y-1">
-                        <h4 className="text-sm font-semibold">
-                          {getUserById(allUser, artwork.user)?.name}
-                        </h4>
-                        <p className="text-sm">
-                          The React Framework – created and maintained by
-                          @vercel.
-                        </p>
-                        <div className="flex items-center pt-2">
-                          <CalendarDays className="mr-2 h-4 w-4 opacity-70" />
-                          <span className="text-xs text-muted-foreground">
-                            {getUserById(allUser, artwork.user)?.createdAt}
-                          </span>
+                      {checkedList.length > 0 &&
+                        cart.length > 0 && ( // Hiển thị nút "Xóa tất cả" nếu không bị vô hiệu hóa
+                          <Button
+                            onClick={removeAllSelectedProducts}
+                            className="font-medium text-indigo-600 hover:text-indigo-500 border-none"
+                          >
+                            Xóa các sản phẩm đã chọn
+                          </Button>
+                        )}
+                      <div className="mt-8">
+                        <div className="flow-root">
+                          <div
+                            role="list"
+                            className="-my-6 divide-y divide-gray-200"
+                          >
+                            <Checkbox.Group
+                              style={{ width: "100%" }}
+                              value={checkedList}
+                              onChange={onChange}
+                            >
+                              {test &&
+                                test.map((cartItem, index) => (
+                                  <div key={index}>
+                                    <span className="font-bold">
+                                      {cartItem[0].user.name}
+                                    </span>
+                                    {cartItem
+                                      .slice()
+                                      .reverse()
+                                      .map((product, index) => (
+                                        <div className="flex gap-2" key={index}>
+                                          {checkedList[0]?.user ? (
+                                            <Checkbox
+                                              value={product}
+                                              disabled={
+                                                product.quantity === 0 ||
+                                                checkedList[0]?.user._id !==
+                                                  product.user._id
+                                              }
+                                            />
+                                          ) : (
+                                            <Checkbox
+                                              value={product}
+                                              disabled={product.quantity === 0}
+                                            />
+                                          )}
+                                          <li
+                                            key={product.id}
+                                            className="flex py-4"
+                                          >
+                                            <div className="h-24 w-24 flex-shrink-0 overflow-hidden rounded-md border border-gray-200">
+                                              <img
+                                                src={product.image}
+                                                alt={product.image}
+                                                className="h-full w-full object-cover object-center"
+                                              />
+                                            </div>
+
+                                            <div className="ml-4 flex flex-1 flex-col">
+                                              <div>
+                                                <div className="flex justify-between text-base font-medium text-gray-900">
+                                                  <h3 className="w-44">
+                                                    <Link
+                                                      onClick={() => {
+                                                        setOpen(false);
+                                                        handleCartClose();
+                                                      }}
+                                                      to={`/product/${product._id}`}
+                                                    >
+                                                      {product.name}
+                                                    </Link>
+                                                  </h3>
+                                                  <p className="ml-4">
+                                                    {formatCurrency(
+                                                      product?.price
+                                                    )}
+                                                  </p>
+                                                </div>
+                                                <p className="mt-1 text-sm text-gray-500">
+                                                  {product.color}
+                                                </p>
+                                              </div>
+                                              <div className="flex flex-1 items-end justify-between text-sm">
+                                                <div className="flex items-center gap-2 text-gray-500">
+                                                  <InputNumber
+                                                    className="w-14 text-sm"
+                                                    min={1}
+                                                    onChange={(newQuantity) =>
+                                                      handleQuantityChange(
+                                                        product._id,
+                                                        newQuantity
+                                                      )
+                                                    }
+                                                    value={product?.data}
+                                                    max={product.quantity}
+                                                  />
+                                                  {product.quantity} Sản phẩm
+                                                </div>
+
+                                                <div className="flex">
+                                                  <button
+                                                    onClick={() =>
+                                                      removeProduct(product._id)
+                                                    }
+                                                    className="font-medium text-indigo-600 hover:text-indigo-500"
+                                                  >
+                                                    Xóa
+                                                  </button>
+                                                </div>
+                                              </div>
+                                            </div>
+                                          </li>
+                                        </div>
+                                      ))}
+                                  </div>
+                                ))}
+                            </Checkbox.Group>
+                          </div>
                         </div>
                       </div>
                     </div>
-                  </HoverCardContent>
-                </HoverCard>
-                <pre
-                  style={{
-                    whiteSpace: "pre-wrap",
-                    wordWrap: "break-word",
-                    padding: "6px",
-                  }}
-                >
-                  {artwork.content}
-                </pre>
-                <div
-                  key={artwork._id}
-                  className="w-auto  xl:gap-x-8 shadow-md  border-solid  border-white "
-                >
-                  <div className="relative overflow-hidden bg-gray-200 xl:aspect-h-8 xl:aspect-w-7 flex justify-center ">
-                    <Image.PreviewGroup items={artwork.image}>
-                      <Image
-                        maskClassName="w-full h-full object-cover object-center lg:h-full lg:w-full "
-                        src={artwork.image}
-                        alt={artwork.imageAlt}
-                      />
-                    </Image.PreviewGroup>
+
+                    <div className="border-t border-gray-200 px-4 py-6 sm:px-6">
+                      <div className="flex justify-between text-base font-medium text-gray-900">
+                        <p>Tổng cộng</p>
+                        <p>{formatCurrency(totalAmount)}</p>
+                      </div>
+                      {/* <p className="mt-0.5 text-sm text-gray-500">Vận chuyển và thuế được tính khi thanh toán.</p> */}
+                      <div className="mt-6">
+                        <Button
+                          onClick={() => {
+                            onSubmit();
+                          }}
+                          disabled={disabled}
+                          className="flex h-12 items-center w-full justify-center rounded-md border border-transparent bg-indigo-600 px-6 py-3 text-base font-medium text-white shadow-sm hover:bg-indigo-700"
+                        >
+                          Thanh toán
+                        </Button>
+                      </div>
+                      <div className="mt-6 flex justify-center text-center text-sm text-gray-500">
+                        <p>
+                          hoặc
+                          <button
+                            type="primary"
+                            className="font-medium text-indigo-600 hover:text-indigo-500"
+                            onClick={() => {
+                              setOpen(false);
+                              handleCartClose();
+                            }}
+                          >
+                            Tiếp tục mua sắm
+                            <span aria-hidden="true"> &rarr;</span>
+                          </button>
+                        </p>
+                      </div>
+                    </div>
                   </div>
-                </div>
-                <div className="flex justify-around mb-1 p-1 gap-10 mt-2 ">
-                  <p>
-                    {likedProductIds[index]} {artwork?.likes ? "Like" : ""}
-                  </p>
-                  <p>
-                    {artwork?.comments.length}{" "}
-                    {artwork?.comments ? "comment" : ""}
-                  </p>
-                </div>
-                <div className="flex justify-center">
-                  <div className=" w-11/12 h-[1px] bg-[#999998] my-2"></div>
-                </div>
-                <div className="flex justify-around mb-1 p-1 gap-2">
-                  <button
-                    className={`flex gap-2 w-1/2  items-center  h-8  justify-center rounded-lg hover:bg-[#f1f0f0] ${
-                      likedProducts[index] ? "text-[#08c]" : ""
-                    }`}
-                    onClick={() => {
-                      !likedProducts[index]
-                        ? handleLike(index, artwork._id, token?._doc?._id)
-                        : handleUnLike(index, artwork._id, token?._doc?._id);
-                    }}
-                  >
-                    {likedProducts[index] ? (
-                      <LikeOutlined style={{ fontSize: "20px" }} />
-                    ) : (
-                      <LikeOutlined style={{ fontSize: "20px" }} />
-                    )}
-                    <p style={likedProducts[index] ? { color: "#08c" } : {}}>
-                      {likedProducts[index] ? "Đã thích" : "Thích"}
-                    </p>
-                  </button>
-                  <button
-                    onClick={() => navigate(`/artwork/${artwork._id}`)}
-                    className="flex gap-2 w-1/2 items-center h-8  justify-center rounded-lg hover:bg-[#f1f0f0]"
-                  >
-                    <CommentOutlined style={{ fontSize: "20px" }} />
-                    Bình luận
-                  </button>
-                </div>
-              </div>
-            ))}
+                </Dialog.Panel>
+              </Transition.Child>
+            </div>
           </div>
-        </InfiniteScroll>
-      </div>
-      <Modal
-        title="người theo dõi"
-        open={isModalOpen}
-        onOk={handleOk}
-        onCancel={handleCancel}
-      >
-        <div className="text-center">
-          {Author?.follow &&
-            Author?.follow.map((user, index) => (
-              <div
-                className="rounded-xl overflow-hidden relative text-center group items-center flex flex-col max-w-sm hover:shadow-2xl transition-all duration-500 shadow-xl"
-                style={{
-                  display: "inline-table",
-                  margin: "0px 5px",
-                  width: "92%",
-                }}
-              >
-                <Link
-                  to={`/author/${user.user._id}`}
-                  className={`card px-6 py-8 sm:p-10 sm:pb-6`}
-                  key={index}
-                  style={{ display: "flex", alignItems: "center" }}
-                  onClick={handleCancel}
-                >
-                  <img
-                    className="rounded-md p-1"
-                    src={user.user.avatar}
-                    style={{
-                      borderRadius: "50%",
-                      width: "60px",
-                      height: "60px",
-                    }}
-                    alt={user.user.avatar}
-                    // onLoad={() =>
-                    //   containerRef.current.dispatchEvent(new Event("load"))
-                    // }
-                  />
-                  <div style={{ paddingLeft: "10px", textAlign: "justify" }}>
-                    <p className="text-base font-medium text-gray-700">
-                      {user.user.username}
-                    </p>
-                    <span>{user.user?.follow?.length} follow</span>
-                  </div>
-                </Link>
-              </div>
-            ))}
         </div>
-      </Modal>
-      <Modal
-        title="người đang theo dõi"
-        open={isModalOpen1}
-        onOk={handleOk1}
-        onCancel={handleCancel1}
-      >
-        <div className="text-center">
-          {Author?.followAdd &&
-            Author?.followAdd.map((user, index) => (
-              <div
-                className="rounded-xl overflow-hidden relative text-center group items-center flex flex-col max-w-sm hover:shadow-2xl transition-all duration-500 shadow-xl"
-                style={{
-                  display: "inline-table",
-                  margin: "0px 5px",
-                  width: "92%",
-                }}
-              >
-                <Link
-                  to={`/author/${user.user._id}`}
-                  className={`card px-6 py-8 sm:p-10 sm:pb-6`}
-                  key={index}
-                  style={{ display: "flex", alignItems: "center" }}
-                  onClick={handleCancel1}
-                >
-                  <img
-                    className="rounded-md p-1"
-                    src={user.user.avatar}
-                    style={{
-                      borderRadius: "50%",
-                      width: "60px",
-                      height: "60px",
-                    }}
-                    alt={user.user.avatar}
-                    // onLoad={() =>
-                    //   containerRef.current.dispatchEvent(new Event("load"))
-                    // }
-                  />
-                  <div style={{ paddingLeft: "10px", textAlign: "justify" }}>
-                    <p className="text-base font-medium text-gray-700">
-                      {user.user.username}
-                    </p>
-                    <span>{user.user?.follow?.length} follow</span>
-                  </div>
-                </Link>
-              </div>
-            ))}
-        </div>
-      </Modal>
-      <ComFooter />
-    </>
+      </Dialog>
+    </Transition.Root>
   );
 }
